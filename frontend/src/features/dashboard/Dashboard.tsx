@@ -1,6 +1,6 @@
 // src/features/dashboard/Dashboard.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
@@ -11,6 +11,10 @@ import { incisosLAIP } from './dataLAIP';
 import type { IncisoLAIP } from './dataLAIP';
 import LogoSvg from '../../assets/homeico.svg'
 
+import { tiposEntidadesData } from '../../data/tipoEntidad';
+import { entidadesData } from '../../data/entidades';
+import { aniosData } from '../../data/anio';
+
 // Interface para controlar el estado del login mockeado
 interface UsuarioLogueado {
     nombre: string;
@@ -18,35 +22,18 @@ interface UsuarioLogueado {
     autenticado: boolean;
 }
 
-// Opciones mock para los Combobox (Dropdowns) de filtrado institucional
-const tiposInstituciones = [
-    { label: 'Ministerios', value: 'ministerio' },
-    { label: 'Municipalidades', value: 'muni' },
-    { label: 'Entidades Autónomas', value: 'autonoma' },
-    { label: 'Organismos de Justicia', value: 'justicia' }
-];
-
-const nombresInstituciones = [
-    { label: 'Ministerio de Finanzas Públicas (MINFIN)', value: 'minfin', tipo: 'ministerio' },
-    { label: 'Municipalidad de Guatemala', value: 'muniguate', tipo: 'muni' },
-    { label: 'Universidad de San Carlos de Guatemala (USAC)', value: 'usac', tipo: 'autonoma' },
-    { label: 'Corte de Constitucionalidad (CC)', value: 'cc', tipo: 'justicia' }
-];
-
-const listadoAnios = [
-    { label: 'Año 2025', value: '2025' },
-    { label: 'Año 2026', value: '2026' }
-];
-
 export default function Dashboard(): React.JSX.Element {
     // Estados para la paginación (6 elementos por página por requerimiento)
     const [first, setFirst] = useState<number>(0);
     const [rows, setRows] = useState<number>(6);
 
     // Estados para los comboboxes de filtrado
-    const [tipoSeleccionado, setTipoSeleccionado] = useState<string | null>(null);
-    const [institucionSeleccionada, setInstitucionSeleccionada] = useState<string | null>(null);
-    const [anioSeleccionado, setAnioSeleccionado] = useState<string | null>(null);
+    const [tipoSeleccionado, setTipoSeleccionado] = useState<number | null>(null);
+    const [institucionSeleccionada, setInstitucionSeleccionada] = useState<number | null>(null);
+    const [anioSeleccionado, setAnioSeleccionado] = useState<number | null>(null);
+
+    // Estado dinámico para almacenar las entidades filtradas
+    const [entidadesFiltradas, setEntidadesFiltradas] = useState<{ label: string; value: number }[]>([]);
 
     // Estado del usuario (Cambiar 'autenticado: true' a 'false' para probar ambos flujos)
     const [usuario] = useState<UsuarioLogueado>({
@@ -70,6 +57,36 @@ export default function Dashboard(): React.JSX.Element {
             .toUpperCase()
             .substring(0, 2);
     };
+
+    // Mapeamos los Tipos de Entidades al formato que requiere el Dropdown { label, value }
+    const opcionTipos = tiposEntidadesData.map(tipo => ({
+        label: tipo.nombre,
+        value: tipo.id // El valor guardado será el ID corto ('min', 'muni')
+    }));
+
+    // Transformamos los años del archivo al formato { label, value } de PrimeReact
+    const opcionAnios = aniosData.map(anio => ({
+        label: anio.nombre,
+        value: anio.id // Guardará el número entero (2025 o 2026)
+    }));
+
+    //Cascada en Combobox
+    useEffect(() => {
+        if (tipoSeleccionado !== null) {
+            const filtradas = entidadesData
+                .filter(entidad => entidad.tipoId === tipoSeleccionado)
+                .map(entidad => ({
+                    label: entidad.nombre,
+                    value: entidad.id
+                }));
+            
+            setEntidadesFiltradas(filtradas);
+        } else {
+            setEntidadesFiltradas([]);
+        }
+        
+        setInstitucionSeleccionada(null);
+    }, [tipoSeleccionado]); // Escuta los cambios del primer combobox
 
     return (
         <div className="flex min-h-screen surface-ground font-sans">
@@ -113,7 +130,7 @@ export default function Dashboard(): React.JSX.Element {
                 <nav className="flex-grow-1">
                     <ul className="list-none p-0 m-0">
                         <li className="mb-2">
-                            <Button label="Dashboard" icon="pi pi-th-large" className="w-full p-button-text text-white text-left p-3 hover:bg-white-alpha-10 border-round-md" />
+                            <Button label="Dashboard" icon="pi pi-th-large" tooltip="Menú principal" className="w-full p-button-text text-white text-left p-3 hover:bg-white-alpha-10 border-round-md" />
                         </li>
                         <li className="mb-2">
                             <Button label="Solicitudes" icon="pi pi-clipboard" tooltip="Gestionar Mis Solicitudes" className="w-full p-button-text text-white text-left p-3 hover:bg-white-alpha-10 border-round-md" />
@@ -209,7 +226,7 @@ export default function Dashboard(): React.JSX.Element {
                                     id="tipoInst"
                                     value={tipoSeleccionado} 
                                     onChange={(e) => setTipoSeleccionado(e.value)} 
-                                    options={tiposInstituciones} 
+                                    options={opcionTipos} 
                                     placeholder="Seleccione Tipo" 
                                     className="w-15rem" 
                                     showClear
@@ -221,10 +238,11 @@ export default function Dashboard(): React.JSX.Element {
                                     id="nombreInst"
                                     value={institucionSeleccionada} 
                                     onChange={(e) => setInstitucionSeleccionada(e.value)} 
-                                    options={nombresInstituciones} 
-                                    placeholder="Seleccione Entidad" 
+                                    options={entidadesFiltradas} 
+                                    placeholder={tipoSeleccionado ? "Seleccione Entidad" : "Primero elija un tipo"} 
                                     className="w-18rem" 
                                     showClear
+                                    disabled={!tipoSeleccionado} // Deshabilitado si no hay tipo seleccionado
                                 />
                             </div>
                             {/* Combobox para la selección de Año */}
@@ -234,7 +252,7 @@ export default function Dashboard(): React.JSX.Element {
                                     id="anioInst"
                                     value={anioSeleccionado} 
                                     onChange={(e) => setAnioSeleccionado(e.value)} 
-                                    options={listadoAnios} 
+                                    options={opcionAnios} 
                                     placeholder="Seleccione Año" 
                                     className="w-10rem" /* Un ancho más corto para equilibrar el diseño */
                                     showClear
