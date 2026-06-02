@@ -1,4 +1,4 @@
-:root {
+/* :root {
   --text: #6b6375;
   --text-h: #08060d;
   --bg: #fff;
@@ -109,3 +109,31 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+ */
+
+/* ==========================================
+   ESTILOS PERSONALIZADOS PARA EL MENÚ (Intro)
+   ========================================== */
+
+/* 1. Estado Base (Texto e icono en un gris oscuro corporativo) */
+.custom-menu-colors .p-menuitem-link {
+    color: var(--text-color, #495057) !important;
+    transition: background-color 0.2s, color 0.2s;
+    border-radius: 25px; /* Bordes ligeramente redondeados para el fondo al pasar el mouse */
+}
+.custom-menu-colors .p-menuitem-icon,
+.custom-menu-colors .p-menuitem-text {
+    color: inherit !important; /* Fuerza a que el icono siga el color del texto */
+}
+
+/* 2. Estado Hover (Al pasar el mouse: Azul Claro institucional) */
+.custom-menu-colors .p-menuitem-link:hover {
+    background-color: #E6F0FA !important; /* Fondo azul cielo muy tenue */
+    color: #0059D5 !important;            /* Texto en azul medio */
+}
+
+/* 3. Estado Active / Click (Al presionar: Azul más intenso sin superar al #0059D5) */
+.custom-menu-colors .p-menuitem-link:active {
+    background-color: #CCE2F7 !important; /* Fondo azul claro un poco más compacto */
+    color: #0059D5 !important;            /* Texto azul profundo y elegante */
+} 
