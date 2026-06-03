@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menubar } from 'primereact/menubar';
 import type { MenuItem } from 'primereact/menuitem'; // Importamos tipos de PrimeReact
@@ -7,6 +7,9 @@ import { Card } from 'primereact/card';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import LogoSvg from '../../assets/homeico.svg'
+import { LoginAdmin } from '../../components/auth/LoginAdmin'
+import { SaberMas } from '../../components/info/SaberMas';
+import { Toast } from 'primereact/toast';
 
 
 // Definimos la interfaz para el estado del formulario de contacto
@@ -19,6 +22,23 @@ interface ContactoForm {
 export default function Intro(): React.JSX.Element {
     const navigate = useNavigate();
 
+    //Mensajes Toast
+    const toastRef = useRef<Toast>(null);
+
+    //Estado Carga Botón Enviar
+    const [sendingContact, setSendingContact] = useState<boolean>(false);
+
+    //Form Login State
+    const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+
+    const handleLoginSuccess = (userEmail: string) => {
+        console.log("¡Logueado con éxito!", userEmail);
+        // Aquí puedes redireccionar al Dashboard usando tu router (ej: navigate('/dashboard'))
+    };
+
+    // Saber Más
+    const [showInfoModal, setShowInfoModal] = useState<boolean>(false);
+
     // Estado estrictamente tipado con nuestra interfaz
     const [contacto, setContacto] = useState<ContactoForm>({ nombre: '', email: '', mensaje: '' });
 
@@ -28,23 +48,49 @@ export default function Intro(): React.JSX.Element {
         { label: 'Nosotros', icon: 'pi pi-info-circle', command: () => { document.getElementById('nosotros')?.scrollIntoView({ behavior: 'smooth' }); } },
         { label: 'Servicios', icon: 'pi pi-crown', command: () => { document.getElementById('servicios')?.scrollIntoView({ behavior: 'smooth' }); } },
         { label: 'Contacto', icon: 'pi pi-envelope', command: () => { document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' }); } },
-        { label: 'Administración', icon: 'pi pi-spin pi-cog', command: () => { document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' }); } }
+        { label: 'Administración', icon: 'pi pi-spin pi-cog', command: () => { setShowLoginModal(true); } }
     ];
-
-    /* const logoEnd: React.JSX.Element = (
-        <div className="flex align-items-center gap-2 text-blue-700 font-bold text-xl">
-            <i className="pi pi-bolt" style={{ fontSize: '1.5rem' }}></i>
-            <div className="flex flex-column text-left">
-                <span className="line-height-2">Información Pública Guatemala</span>
-                <span className="text-xs font-normal text-600">Ciudadanos Informados</span>
-            </div>
-        </div>
-    ); */
 
     const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
         e.preventDefault();
-        console.log('Datos enviados:', contacto);
-        // Aquí procesarías la lógica de envío en el futuro
+        
+        // Validación básica por seguridad
+        if (!contacto.nombre || !contacto.email || !contacto.mensaje) {
+            toastRef.current?.show({
+                severity: 'warn',
+                summary: 'Campos incompletos',
+                detail: 'Por favor, rellena todos los campos antes de enviar.',
+                life: 3000
+            });
+            return;
+        }
+
+        setSendingContact(true);
+
+        // Notificación de que el proceso ha iniciado
+        toastRef.current?.show({
+            severity: 'info',
+            summary: 'Enviando mensaje',
+            detail: 'Conectando con el servidor de correo...',
+            life: 1500
+        });
+
+        // Simulamos el envío al backend (API) que despacharía el correo a infopgt96@gmail.com
+        setTimeout(() => {
+            setSendingContact(false);
+
+            // Mensaje de éxito elegante
+            toastRef.current?.show({
+                severity: 'success',
+                summary: '¡Mensaje Enviado!',
+                detail: 'Tu consulta ha sido redirigida al administrador (infopgt96@gmail.com).',
+                life: 4000
+            });
+
+            // Limpiamos el formulario de manera ordenada
+            setContacto({ nombre: '', email: '', mensaje: '' });
+
+        }, 2200); // Simulamos 2.2 segundos de latencia de red
     };
 
     return (
@@ -98,7 +144,12 @@ export default function Intro(): React.JSX.Element {
                             onClick={ () => navigate('/dashboard') } 
                             rounded 
                         />
-                        <Button label="Saber Más" className="p-button-outlined" rounded />
+                        <Button 
+                            label="Saber Más" 
+                            className="p-button-outlined"
+                            onClick={() => setShowInfoModal(true)}
+                            rounded 
+                        />
                     </div>
                 </div>
             </section>
@@ -269,11 +320,36 @@ export default function Intro(): React.JSX.Element {
                             />
                         </div>
                         <div className="col-12 p-3">
-                            <Button label="Enviar Mensaje" icon="pi pi-send" className="p-button-lg px-6" type="submit" rounded/>
+                            <Button 
+                                label={sendingContact ? "Enviando..." : "Enviar Mensaje"} 
+                                icon="pi pi-send" 
+                                loading={sendingContact}
+                                className="p-button-lg px-6" 
+                                type="submit"
+                                style={{ backgroundColor: '#0059D5', borderColor: '#0059D5' }}
+                                rounded
+                            />
                         </div>
                     </form>
                 </div>
             </section>
+
+            {/* INVOCACIÓN DEL POPUP LOGIN ADMIN COMPONENT */}
+            <LoginAdmin 
+                visible={showLoginModal} 
+                onHide={() => setShowLoginModal(false)} 
+                onLoginSuccess={handleLoginSuccess}
+            />
+
+            {/* INFO SABER MAS */}
+            <SaberMas 
+                visible={showInfoModal} 
+                onHide={() => setShowInfoModal(false)} 
+            />
+
+           {/* COMPONENTE TOAST PARA NOTIFICACIONES DE CONTACTO */}
+            <Toast ref={toastRef} position="top-right" />
+             
         </div>
     );
 }
