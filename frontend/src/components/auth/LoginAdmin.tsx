@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react'; // 1. Importamos useRef
+import React, { useState, useRef } from 'react';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
-import { Toast } from 'primereact/toast'; // 2. Importamos el componente Toast
+import { Toast } from 'primereact/toast';
+import { useAuth } from '../../shared/AuthContext';
 
 interface LoginAdminProps {
     visible: boolean;
@@ -18,44 +19,68 @@ export const LoginAdmin: React.FC<LoginAdminProps> = ({ visible, onHide, onLogin
     const [rememberMe, setRememberMe] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
 
-    // 3. Creamos la referencia para controlar el Toast
+    // Consumimos el método login desde el AuthContext
+    const { login } = useAuth();
+
     const toastRef = useRef<Toast>(null);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        // 4. Mostramos un mensaje informativo azul al iniciar la petición
+        // Mostramos mensaje informativo al iniciar la petición
         toastRef.current?.show({
             severity: 'info',
             summary: 'Autenticación',
             detail: 'Validando credenciales...',
             life: 1000
         });
-        
-        setTimeout(() => {
-            setLoading(false);
-            if (email && password) {
-                // 5. Mostramos un mensaje de éxito verde antes de cerrar o redirigir
+
+        try {
+            // Ejecutamos la petición real al backend a través del contexto
+            const success = await login(email, password);
+
+            if (success) {
                 toastRef.current?.show({
                     severity: 'success',
                     summary: 'Ingreso Exitoso',
-                    detail: `¡Bienvenido, ${email}!`,
-                    life: 2000
+                    detail: `¡Bienvenido al sistema!`,
+                    life: 1500
                 });
 
-                // Esperamos un momento breve para que el usuario logre leer el Toast de éxito
+                // Esperamos un momento breve para que el usuario lea el Toast de éxito
                 setTimeout(() => {
+                    setLoading(false);
                     if (onLoginSuccess) onLoginSuccess(email);
                     onHide();
-                }, 800);
+                    // Opcional: Limpiar campos tras un login exitoso
+                    setEmail('');
+                    setPassword('');
+                }, 1000);
+
+            } else {
+                setLoading(false);
+                toastRef.current?.show({
+                    severity: 'error',
+                    summary: 'Error de ingreso',
+                    detail: 'Credenciales incorrectas o cuenta no verificada.',
+                    life: 3000
+                });
             }
-        }, 1200);
+        } catch (error) {
+            setLoading(false);
+            console.error("Error en la conexión del login:", error);
+            toastRef.current?.show({
+                severity: 'error',
+                summary: 'Error de Red',
+                detail: 'No se pudo conectar con el servidor de autenticación.',
+                life: 4000
+            });
+        }
     };
 
     return (
         <>
-            {/* 6. El componente Toast debe vivir al mismo nivel de tu jerarquía visual */}
             <Toast ref={toastRef} position="top-right" />
 
             <Dialog
@@ -100,6 +125,7 @@ export const LoginAdmin: React.FC<LoginAdminProps> = ({ visible, onHide, onLogin
                                 placeholder="ejemplo@infop.gob.gt"
                                 className="w-full border-round-xl p-inputtext-sm pl-6 py-2.5 text-base"
                                 style={{ borderColor: '#0059D5', boxShadow: 'none' }}
+                                disabled={loading}
                                 required
                             />
                         </div>
@@ -120,6 +146,7 @@ export const LoginAdmin: React.FC<LoginAdminProps> = ({ visible, onHide, onLogin
                                 className="w-full"
                                 inputClassName="w-full border-round-xl p-inputtext-sm pl-6 py-2.5 text-base"
                                 inputStyle={{ borderColor: '#0059D5', boxShadow: 'none' }}
+                                disabled={loading}
                                 required
                             />
                         </div>
@@ -132,6 +159,7 @@ export const LoginAdmin: React.FC<LoginAdminProps> = ({ visible, onHide, onLogin
                                 id="remember" 
                                 onChange={e => setRememberMe(e.checked ?? false)} 
                                 checked={rememberMe}
+                                disabled={loading}
                                 pt={{ 
                                     box: { 
                                         className: rememberMe ? 'border-none' : '',
@@ -149,7 +177,7 @@ export const LoginAdmin: React.FC<LoginAdminProps> = ({ visible, onHide, onLogin
                     {/* Botón Entrar */}
                     <Button
                         type="submit"
-                        label="Entrar al Sistema"
+                        label={loading ? "Iniciando Sesión..." : "Entrar al Sistema"}
                         icon="pi pi-sign-in"
                         loading={loading}
                         className="w-full py-3 border-round-xl font-bold transition-duration-200 shadow-2 border-none text-base"
