@@ -32,8 +32,18 @@ export default function Intro(): React.JSX.Element {
     const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
 
     const handleLoginSuccess = (userEmail: string) => {
-        console.log("¡Logueado con éxito!", userEmail);
-        // Aquí puedes redireccionar al Dashboard usando tu router (ej: navigate('/dashboard'))
+        console.log("¡Logueado con éxito como administrador!", userEmail);
+        
+        // 1. Guardamos la sesión en el almacenamiento local
+        localStorage.setItem('adminUser', userEmail); 
+        
+        // 2. Cerramos el modal primero para limpiar el árbol de componentes
+        setShowLoginModal(false);
+        
+        // 3. Redirigimos inmediatamente a la ruta del panel de administración
+        setTimeout(() => {
+            navigate('/admin-dashboard');
+        }, 100);
     };
 
     // Saber Más
